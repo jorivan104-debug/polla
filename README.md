@@ -81,17 +81,24 @@ src/
 
 ## Deploy en Dokploy (Nixpacks)
 
-### Configuración obligatoria
+### Configuración obligatoria en Dokploy
+
+**Los 3 puertos deben ser 3000** (si uno dice 2400 → Bad Gateway):
+
+| Dónde en Dokploy | Valor |
+|------------------|-------|
+| Application → **Port** | `3000` |
+| Domain → **Container Port** | `3000` |
+| Variable `PORT` | `3000` |
 
 | Campo | Valor |
 |-------|-------|
-| Build Type | Nixpacks |
-| Build Command | `npm run build` |
-| Start Command | `npm run start` |
-| **Port (aplicación)** | **3000** |
-| **Container Port (dominio)** | **3000** ← debe coincidir con el puerto de Next.js |
-| Pre-Deploy | `npx prisma db push --accept-data-loss` |
-| Volumen | Mount path `/app/data` (para SQLite persistente) |
+| Build Type | **Dockerfile** (recomendado) o Nixpacks |
+| Dockerfile Path | `./Dockerfile` (si usas Dockerfile) |
+| Start Command | *(vacío si Dockerfile — usa CMD del Dockerfile)* |
+| Pre-Deploy | *(vacío — el script `docker-start.sh` corre prisma al arrancar)* |
+| Volumen | Mount path `/app/data` |
+| Health Check Path | `/api/health` |
 
 ### Variables de entorno
 

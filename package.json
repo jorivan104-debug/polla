@@ -2,10 +2,14 @@
   "name": "polla-mundialista",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start -H 0.0.0.0",
+    "start": "next start -H 0.0.0.0 -p 3000",
+    "start:docker": "sh scripts/docker-start.sh",
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
