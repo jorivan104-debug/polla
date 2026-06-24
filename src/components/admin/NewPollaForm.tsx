@@ -120,8 +120,8 @@ export function NewPollaForm() {
         ) : fixtures.length === 0 ? (
           <div className="rounded-lg border border-sport-blue/20 bg-stadium-deep/40 p-4 text-sm text-score-white/70">
             <Trophy className="mb-2 h-5 w-5 text-victory" />
-            No hay partidos próximos disponibles. Verifica que <code>API_FOOTBALL_KEY</code>{" "}
-            esté configurada en <code>.env</code>.
+            No hay partidos próximos de Colombia en los próximos 6 meses. Verifica{" "}
+            <code>API_FOOTBALL_KEY</code> en Dokploy o que haya fechas programadas.
           </div>
         ) : (
           <div className="space-y-2">

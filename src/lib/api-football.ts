@@ -81,18 +81,89 @@ async function apiGet<T>(path: string, params: Record<string, string | number>):
   return json.response;
 }
 
-export async function fetchUpcomingColombiaFixtures(next = 10): Promise<ApiFootballFixture[]> {
-  return apiGet<ApiFootballFixture[]>("/fixtures", {
-    team: COLOMBIA_TEAM_ID,
-    next,
-  });
+function formatYmd(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
 
-export async function fetchRecentColombiaFixtures(last = 5): Promise<ApiFootballFixture[]> {
-  return apiGet<ApiFootballFixture[]>("/fixtures", {
-    team: COLOMBIA_TEAM_ID,
-    last,
-  });
+function addDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result;
+}
+
+function isColombiaFixture(fixture: ApiFootballFixture): boolean {
+  const home = fixture.teams.home.name.toLowerCase();
+  const away = fixture.teams.away.name.toLowerCase();
+  return home.includes("colombia") || away.includes("colombia");
+}
+
+function sortByKickoff(a: ApiFootballFixture, b: ApiFootballFixture): number {
+  return a.fixture.timestamp - b.fixture.timestamp;
+}
+
+/** Plan free: no admite `next`. Usamos rango de fechas + filtro local. */
+export async function fetchUpcomingColombiaFixtures(limit = 15): Promise<ApiFootballFixture[]> {
+  const now = new Date();
+  const from = formatYmd(now);
+  const to = formatYmd(addDays(now, 180));
+
+  let fixtures: ApiFootballFixture[] = [];
+
+  try {
+    fixtures = await apiGet<ApiFootballFixture[]>("/fixtures", {
+      team: COLOMBIA_TEAM_ID,
+      from,
+      to,
+    });
+  } catch {
+    // Fallback: temporada actual sin parámetro next
+    const season = now.getUTCFullYear();
+    fixtures = await apiGet<ApiFootballFixture[]>("/fixtures", {
+      team: COLOMBIA_TEAM_ID,
+      season,
+    });
+  }
+
+  const cutoff = now.getTime() - 6 * 60 * 60 * 1000;
+
+  return fixtures
+    .filter((f) => {
+      if (!isColombiaFixture(f)) return false;
+      const st = f.fixture.status.short;
+      if (isFinishedStatus(st) || st === "CANC" || st === "ABD") return false;
+      if (isLiveStatus(st) || st === "NS" || st === "TBD" || st === "PST") return true;
+      return f.fixture.timestamp * 1000 >= cutoff;
+    })
+    .sort(sortByKickoff)
+    .slice(0, limit);
+}
+
+/** Plan free: no admite `last`. Usamos rango de fechas hacia atrás. */
+export async function fetchRecentColombiaFixtures(limit = 5): Promise<ApiFootballFixture[]> {
+  const now = new Date();
+  const from = formatYmd(addDays(now, -120));
+  const to = formatYmd(now);
+
+  let fixtures: ApiFootballFixture[] = [];
+
+  try {
+    fixtures = await apiGet<ApiFootballFixture[]>("/fixtures", {
+      team: COLOMBIA_TEAM_ID,
+      from,
+      to,
+    });
+  } catch {
+    const season = now.getUTCFullYear();
+    fixtures = await apiGet<ApiFootballFixture[]>("/fixtures", {
+      team: COLOMBIA_TEAM_ID,
+      season,
+    });
+  }
+
+  return fixtures
+    .filter((f) => isColombiaFixture(f) && isFinishedStatus(f.fixture.status.short))
+    .sort((a, b) => b.fixture.timestamp - a.fixture.timestamp)
+    .slice(0, limit);
 }
 
 export async function fetchFixtureById(id: number): Promise<ApiFootballFixture | null> {
