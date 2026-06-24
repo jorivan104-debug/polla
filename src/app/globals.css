@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background-color: #02101f;
+  color: #f5f5f5;
+  min-height: 100vh;
+}
+
+body {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  .app-background {
+    position: relative;
+    min-height: 100vh;
+    isolation: isolate;
+  }
+
+  .app-background::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url("/Fondo.jpeg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: -2;
+  }
+
+  .app-background::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(7, 27, 58, 0.85) 0%,
+      rgba(2, 16, 31, 0.94) 100%
+    );
+    z-index: -1;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-btn bg-victory px-5 py-3
+           font-sans font-semibold text-stadium-dark
+           transition-all duration-[250ms] ease-polla
+           hover:scale-105 hover:brightness-110
+           active:scale-[0.97]
+           disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-btn border border-sport-blue/40
+           bg-stadium-dark/60 px-5 py-3 font-sans font-semibold text-score-white
+           transition-all duration-[250ms] ease-polla
+           hover:scale-105 hover:border-sport-blue hover:bg-stadium-dark/80
+           active:scale-[0.97];
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-btn bg-passion-red px-5 py-3
+           font-sans font-semibold text-score-white
+           transition-all duration-[250ms] ease-polla
+           hover:scale-105 hover:brightness-110
+           active:scale-[0.97];
+  }
+
+  .card {
+    @apply rounded-2xl border border-sport-blue/20 bg-stadium-dark/70 p-5
+           backdrop-blur-md shadow-lg shadow-stadium-deep/40
+           transition-all duration-[250ms] ease-polla;
+  }
+
+  .card-hover {
+    @apply hover:-translate-y-1 hover:border-sport-blue/50 hover:shadow-sport-blue/20;
+  }
+
+  .card-premium {
+    @apply rounded-2xl bg-gradient-premium p-5
+           shadow-xl shadow-sport-blue/30
+           border border-victory/10;
+  }
+
+  .input-base {
+    @apply w-full rounded-lg border border-sport-blue/30 bg-stadium-dark/60
+           px-4 py-3 text-score-white placeholder-score-white/40
+           outline-none transition-all duration-200
+           focus:border-victory focus:ring-2 focus:ring-victory/30;
+  }
+
+  .label-base {
+    @apply mb-1.5 block text-sm font-medium text-score-white/80;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1
+           text-xs font-semibold uppercase tracking-wider;
+  }
+
+  .badge-live {
+    @apply badge bg-passion-red text-score-white;
+  }
+
+  .badge-victory {
+    @apply badge bg-victory text-stadium-dark;
+  }
+
+  .badge-pending {
+    @apply badge bg-sport-blue text-score-white;
+  }
+
+  .badge-neutral {
+    @apply badge bg-dark-gray text-score-white/80;
+  }
+}
+
+@layer utilities {
+  .text-display {
+    font-family: var(--font-bebas), Impact, sans-serif;
+    letter-spacing: 0.02em;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(17, 72, 199, 0.4);
+    border-radius: 3px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(17, 72, 199, 0.7);
+  }
+}
