@@ -4,14 +4,16 @@ import { prisma } from "@/lib/db";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { randomSuffix, slugify } from "@/lib/slug";
 
+import { MANUAL_FIXTURE_ID } from "@/lib/constants";
+
 const CreateSchema = z.object({
   title: z.string().min(3).max(100),
-  fixtureId: z.number().int().positive(),
+  fixtureId: z.number().int().min(0),
   homeTeam: z.string().min(1),
   awayTeam: z.string().min(1),
   homeLogo: z.string().url().optional().nullable(),
   awayLogo: z.string().url().optional().nullable(),
-  matchDate: z.string().datetime(),
+  matchDate: z.string().min(1),
 });
 
 export async function GET() {

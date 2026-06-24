@@ -7,6 +7,7 @@ import {
   isLiveStatus,
   parsePossessionPercent,
 } from "@/lib/api-football";
+import { isManualPolla } from "@/lib/constants";
 import { computeHoldProbability } from "@/lib/probability";
 import type { Polla } from "@prisma/client";
 
@@ -26,6 +27,10 @@ export interface SyncResult {
 
 export async function syncPolla(polla: Polla): Promise<SyncResult | null> {
   if (polla.status === "FINISHED" || polla.status === "CANCELLED") {
+    return null;
+  }
+
+  if (isManualPolla(polla.fixtureId)) {
     return null;
   }
 

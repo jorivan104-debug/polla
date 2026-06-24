@@ -11,7 +11,9 @@ import {
   Plus,
   CheckCircle2,
   XCircle,
+  Radio,
 } from "lucide-react";
+import { isManualPolla } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatCurrency } from "@/lib/winners";
@@ -33,6 +35,7 @@ interface PollaView {
   status: string;
   homeTeam: string;
   awayTeam: string;
+  fixtureId: number;
 }
 
 interface SyncView {
@@ -52,12 +55,23 @@ interface Props {
 
 export function ManagePollaPanel({ polla, bets, totalPot, lastSync }: Props) {
   const router = useRouter();
+  const isManual = isManualPolla(polla.fixtureId);
+
   const [participantName, setParticipantName] = useState("");
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
   const [amount, setAmount] = useState<string>("");
   const [feedback, setFeedback] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const [liveHome, setLiveHome] = useState(lastSync?.homeScore ?? 0);
+  const [liveAway, setLiveAway] = useState(lastSync?.awayScore ?? 0);
+  const [liveMinute, setLiveMinute] = useState<string>(
+    lastSync?.minute != null ? String(lastSync.minute) : ""
+  );
+  const [liveStatus, setLiveStatus] = useState(lastSync?.status ?? "NS");
+  const [liveHomePos, setLiveHomePos] = useState("");
+  const [liveAwayPos, setLiveAwayPos] = useState("");
 
   const isLocked = ["LOCKED", "LIVE", "FINISHED"].includes(polla.status);
 
@@ -149,6 +163,37 @@ export function ManagePollaPanel({ polla, bets, totalPot, lastSync }: Props) {
     }
   }
 
+  async function handleManualScore(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/pollas/${polla.id}/score`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          homeScore: liveHome,
+          awayScore: liveAway,
+          minute: liveMinute ? Number(liveMinute) : null,
+          status: liveStatus,
+          homePossession: liveHomePos ? Number(liveHomePos) : null,
+          awayPossession: liveAwayPos ? Number(liveAwayPos) : null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setFeedback({ kind: "err", msg: data?.error ?? "Error al actualizar marcador" });
+      } else {
+        setFeedback({ kind: "ok", msg: "Marcador actualizado en la vista pública" });
+        router.refresh();
+      }
+    } catch {
+      setFeedback({ kind: "err", msg: "Error de red" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleCopyLink() {
     const url = `${window.location.origin}/p/${polla.slug}`;
     await navigator.clipboard.writeText(url);
@@ -210,14 +255,103 @@ export function ManagePollaPanel({ polla, bets, totalPot, lastSync }: Props) {
               Reabrir
             </Button>
           )}
-          {(polla.status === "LOCKED" || polla.status === "LIVE") && (
+          {(polla.status === "LOCKED" || polla.status === "LIVE") && !isManual && (
             <Button variant="secondary" onClick={handleSync} disabled={busy} type="button">
               <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
-              Sincronizar ahora
+              Sincronizar API
             </Button>
           )}
         </div>
+        {isManual && (
+          <p className="mt-3 text-xs text-score-white/60">
+            Modo manual — actualiza el marcador abajo durante el partido.
+          </p>
+        )}
       </Card>
+
+      {isManual && polla.status !== "FINISHED" && (
+        <Card>
+          <h2 className="text-display mb-1 flex items-center gap-2 text-xl text-victory">
+            <Radio className="h-5 w-5" />
+            Marcador en vivo (manual)
+          </h2>
+          <p className="mb-4 text-sm text-score-white/70">
+            Ingresa el marcador, minuto y estado. La vista pública se actualiza al guardar.
+          </p>
+          <form onSubmit={handleManualScore} className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <ScoreInput label={polla.homeTeam} value={liveHome} onChange={setLiveHome} />
+              <ScoreInput label={polla.awayTeam} value={liveAway} onChange={setLiveAway} />
+              <div>
+                <label htmlFor="minute" className="label-base">
+                  Minuto
+                </label>
+                <input
+                  id="minute"
+                  type="number"
+                  min={0}
+                  max={130}
+                  value={liveMinute}
+                  onChange={(e) => setLiveMinute(e.target.value)}
+                  className="input-base"
+                  placeholder="67"
+                />
+              </div>
+              <div>
+                <label htmlFor="status" className="label-base">
+                  Estado del partido
+                </label>
+                <select
+                  id="status"
+                  value={liveStatus}
+                  onChange={(e) => setLiveStatus(e.target.value)}
+                  className="input-base"
+                >
+                  <option value="NS">Por jugar</option>
+                  <option value="1H">1er tiempo</option>
+                  <option value="HT">Descanso</option>
+                  <option value="2H">2do tiempo</option>
+                  <option value="ET">Prórroga</option>
+                  <option value="FT">Finalizado</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="homePos" className="label-base">
+                  Posesión {polla.homeTeam} (%)
+                </label>
+                <input
+                  id="homePos"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={liveHomePos}
+                  onChange={(e) => setLiveHomePos(e.target.value)}
+                  className="input-base"
+                  placeholder="55"
+                />
+              </div>
+              <div>
+                <label htmlFor="awayPos" className="label-base">
+                  Posesión {polla.awayTeam} (%)
+                </label>
+                <input
+                  id="awayPos"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={liveAwayPos}
+                  onChange={(e) => setLiveAwayPos(e.target.value)}
+                  className="input-base"
+                  placeholder="45"
+                />
+              </div>
+            </div>
+            <Button type="submit" disabled={busy}>
+              {busy ? "Guardando..." : "Publicar marcador"}
+            </Button>
+          </form>
+        </Card>
+      )}
 
       {!isLocked && (
         <Card>

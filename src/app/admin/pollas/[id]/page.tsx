@@ -80,6 +80,7 @@ export default async function PollaAdminPage({ params }: PageCtx) {
           status: polla.status,
           homeTeam: polla.homeTeam,
           awayTeam: polla.awayTeam,
+          fixtureId: polla.fixtureId,
         }}
         bets={polla.bets.map((b) => ({
           id: b.id,

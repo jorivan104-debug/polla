@@ -19,9 +19,20 @@ export async function GET() {
       away: { id: f.teams.away.id, name: f.teams.away.name, logo: f.teams.away.logo },
       venue: f.fixture.venue.name,
     }));
-    return NextResponse.json({ fixtures: simplified });
+    return NextResponse.json({
+      fixtures: simplified,
+      source: "api-football",
+      manualRecommended: simplified.length === 0,
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Error desconocido";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({
+      fixtures: [],
+      source: "api-football",
+      apiUnavailable: true,
+      error: message,
+      manualRecommended: true,
+      hint: "El plan gratuito de API-Football no incluye temporadas actuales. Usa el modo manual.",
+    });
   }
 }
