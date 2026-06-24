@@ -62,6 +62,13 @@ export async function POST(req: Request) {
     );
   }
 
+  if (data.fixtureId !== MANUAL_FIXTURE_ID) {
+    return NextResponse.json(
+      { error: "Solo se permiten pollas manuales. La integración con API-Football está desactivada." },
+      { status: 400 }
+    );
+  }
+
   const baseSlug = slugify(data.title) || "polla";
   let slug = baseSlug;
   for (let i = 0; i < 5; i++) {

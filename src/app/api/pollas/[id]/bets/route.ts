@@ -24,9 +24,9 @@ export async function POST(req: Request, ctx: RouteCtx) {
   if (!polla) {
     return NextResponse.json({ error: "Polla no existe" }, { status: 404 });
   }
-  if (polla.status === "LOCKED" || polla.status === "LIVE" || polla.status === "FINISHED") {
+  if (polla.status === "CANCELLED") {
     return NextResponse.json(
-      { error: "La polla está bloqueada y no admite nuevas apuestas" },
+      { error: "La polla está cancelada y no admite cambios" },
       { status: 400 }
     );
   }

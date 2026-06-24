@@ -7,7 +7,7 @@ import {
   isLiveStatus,
   parsePossessionPercent,
 } from "@/lib/api-football";
-import { isManualPolla } from "@/lib/constants";
+import { isManualPolla, API_FOOTBALL_ENABLED } from "@/lib/constants";
 import { computeHoldProbability } from "@/lib/probability";
 import type { Polla } from "@prisma/client";
 
@@ -26,6 +26,10 @@ export interface SyncResult {
 }
 
 export async function syncPolla(polla: Polla): Promise<SyncResult | null> {
+  if (!API_FOOTBALL_ENABLED) {
+    return null;
+  }
+
   if (polla.status === "FINISHED" || polla.status === "CANCELLED") {
     return null;
   }
@@ -147,6 +151,10 @@ export async function syncPolla(polla: Polla): Promise<SyncResult | null> {
 }
 
 export async function syncAllActivePollas(): Promise<SyncResult[]> {
+  if (!API_FOOTBALL_ENABLED) {
+    return [];
+  }
+
   const now = new Date();
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
   const threeHoursAhead = new Date(now.getTime() + 3 * 60 * 60 * 1000);

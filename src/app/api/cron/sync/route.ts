@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { API_FOOTBALL_ENABLED } from "@/lib/constants";
 import { syncAllActivePollas } from "@/lib/sync";
 
 export async function GET(req: Request) {
@@ -6,6 +7,10 @@ export async function GET(req: Request) {
   const expected = process.env.CRON_SECRET;
   if (expected && auth !== `Bearer ${expected}`) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  if (!API_FOOTBALL_ENABLED) {
+    return NextResponse.json({ synced: 0, results: [], disabled: true });
   }
 
   try {

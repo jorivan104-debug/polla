@@ -18,9 +18,9 @@ export async function DELETE(_: Request, ctx: RouteCtx) {
   if (!bet) {
     return NextResponse.json({ error: "Apuesta no existe" }, { status: 404 });
   }
-  if (bet.polla.status === "LOCKED" || bet.polla.status === "LIVE" || bet.polla.status === "FINISHED") {
+  if (bet.polla.status === "CANCELLED") {
     return NextResponse.json(
-      { error: "La polla está bloqueada y no se puede modificar" },
+      { error: "La polla está cancelada y no se puede modificar" },
       { status: 400 }
     );
   }

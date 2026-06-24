@@ -4,9 +4,6 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Copy,
-  Lock,
-  Unlock,
-  RefreshCw,
   Trash2,
   Plus,
   CheckCircle2,
@@ -73,7 +70,7 @@ export function ManagePollaPanel({ polla, bets, totalPot, lastSync }: Props) {
   const [liveHomePos, setLiveHomePos] = useState("");
   const [liveAwayPos, setLiveAwayPos] = useState("");
 
-  const isLocked = ["LOCKED", "LIVE", "FINISHED"].includes(polla.status);
+  const canEditBets = polla.status !== "CANCELLED";
 
   async function handleAddBet(e: FormEvent) {
     e.preventDefault();
@@ -82,6 +79,7 @@ export function ManagePollaPanel({ polla, bets, totalPot, lastSync }: Props) {
     try {
       const res = await fetch(`/api/pollas/${polla.id}/bets`, {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           participantName: participantName.trim(),
@@ -119,45 +117,6 @@ export function ManagePollaPanel({ polla, bets, totalPot, lastSync }: Props) {
       } else {
         router.refresh();
       }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleStatus(next: string) {
-    setBusy(true);
-    setFeedback(null);
-    try {
-      const res = await fetch(`/api/pollas/${polla.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: next }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setFeedback({ kind: "err", msg: data?.error ?? "Error" });
-      } else {
-        router.refresh();
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleSync() {
-    setBusy(true);
-    setFeedback(null);
-    try {
-      const res = await fetch(`/api/sync/${polla.id}`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        setFeedback({ kind: "err", msg: data?.error ?? "Error al sincronizar" });
-      } else {
-        setFeedback({ kind: "ok", msg: "Sincronizado con API-Football" });
-        router.refresh();
-      }
-    } catch {
-      setFeedback({ kind: "err", msg: "Error de red" });
     } finally {
       setBusy(false);
     }
@@ -219,6 +178,65 @@ export function ManagePollaPanel({ polla, bets, totalPot, lastSync }: Props) {
         </div>
       )}
 
+      <Card className="border-victory/30">
+        <h2 className="text-display mb-1 text-xl text-victory">Registrar apuesta</h2>
+        <p className="mb-4 text-sm text-score-white/70">
+          Nombre, marcador predicho y monto. Puedes agregar apuestas en cualquier momento.
+        </p>
+        {polla.status === "CANCELLED" ? (
+          <p className="text-sm text-passion-red">Esta polla está cancelada y no admite cambios.</p>
+        ) : (
+          <form onSubmit={handleAddBet} className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label htmlFor="name" className="label-base">
+                  Nombre del participante
+                </label>
+                <input
+                  id="name"
+                  value={participantName}
+                  onChange={(e) => setParticipantName(e.target.value)}
+                  className="input-base"
+                  required
+                  maxLength={60}
+                />
+              </div>
+              <ScoreInput
+                label={polla.homeTeam}
+                value={homeScore}
+                onChange={setHomeScore}
+              />
+              <ScoreInput
+                label={polla.awayTeam}
+                value={awayScore}
+                onChange={setAwayScore}
+              />
+              <div className="sm:col-span-2">
+                <label htmlFor="amount" className="label-base">
+                  Monto (COP)
+                </label>
+                <input
+                  id="amount"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  step={100}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="input-base"
+                  required
+                  placeholder="50000"
+                />
+              </div>
+            </div>
+            <Button type="submit" disabled={busy || polla.status === "CANCELLED"}>
+              <Plus className="h-4 w-4" />
+              {busy ? "Guardando..." : "Agregar apuesta"}
+            </Button>
+          </form>
+        )}
+      </Card>
+
       <Card>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Stat label="Pozo total" value={formatCurrency(totalPot)} highlight />
@@ -238,35 +256,7 @@ export function ManagePollaPanel({ polla, bets, totalPot, lastSync }: Props) {
             <Copy className="h-4 w-4" />
             Copiar link
           </Button>
-          {polla.status === "OPEN" && (
-            <Button onClick={() => handleStatus("LOCKED")} disabled={busy} type="button">
-              <Lock className="h-4 w-4" />
-              Bloquear apuestas
-            </Button>
-          )}
-          {polla.status === "LOCKED" && (
-            <Button
-              variant="secondary"
-              onClick={() => handleStatus("OPEN")}
-              disabled={busy}
-              type="button"
-            >
-              <Unlock className="h-4 w-4" />
-              Reabrir
-            </Button>
-          )}
-          {(polla.status === "LOCKED" || polla.status === "LIVE") && !isManual && (
-            <Button variant="secondary" onClick={handleSync} disabled={busy} type="button">
-              <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
-              Sincronizar API
-            </Button>
-          )}
         </div>
-        {isManual && (
-          <p className="mt-3 text-xs text-score-white/60">
-            Modo manual — actualiza el marcador abajo durante el partido.
-          </p>
-        )}
       </Card>
 
       {isManual && polla.status !== "FINISHED" && (
@@ -353,67 +343,15 @@ export function ManagePollaPanel({ polla, bets, totalPot, lastSync }: Props) {
         </Card>
       )}
 
-      {!isLocked && (
-        <Card>
-          <h2 className="text-display mb-4 text-xl text-victory">Registrar apuesta</h2>
-          <form onSubmit={handleAddBet} className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label htmlFor="name" className="label-base">
-                  Nombre del participante
-                </label>
-                <input
-                  id="name"
-                  value={participantName}
-                  onChange={(e) => setParticipantName(e.target.value)}
-                  className="input-base"
-                  required
-                  maxLength={60}
-                />
-              </div>
-              <ScoreInput
-                label={polla.homeTeam}
-                value={homeScore}
-                onChange={setHomeScore}
-              />
-              <ScoreInput
-                label={polla.awayTeam}
-                value={awayScore}
-                onChange={setAwayScore}
-              />
-              <div className="sm:col-span-2">
-                <label htmlFor="amount" className="label-base">
-                  Monto (COP)
-                </label>
-                <input
-                  id="amount"
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  step={100}
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="input-base"
-                  required
-                  placeholder="50000"
-                />
-              </div>
-            </div>
-            <Button type="submit" disabled={busy}>
-              <Plus className="h-4 w-4" />
-              {busy ? "Guardando..." : "Agregar apuesta"}
-            </Button>
-          </form>
-        </Card>
-      )}
-
       <Card>
         <h2 className="text-display mb-4 text-xl text-victory">
           Apuestas registradas ({bets.length})
         </h2>
         {bets.length === 0 ? (
           <p className="text-sm text-score-white/70">
-            Aún no hay apuestas. Agrega la primera arriba.
+            {canEditBets
+              ? "Aún no hay apuestas. Usa el formulario «Registrar apuesta» de arriba."
+              : "No hay apuestas registradas en esta polla."}
           </p>
         ) : (
           <ul className="divide-y divide-sport-blue/15">
@@ -429,7 +367,7 @@ export function ManagePollaPanel({ polla, bets, totalPot, lastSync }: Props) {
                 <div className="text-right">
                   <p className="text-display text-lg text-victory">{formatCurrency(b.amount)}</p>
                 </div>
-                {!isLocked && (
+                {canEditBets && (
                   <button
                     onClick={() => handleDeleteBet(b.id)}
                     className="rounded p-2 text-score-white/50 transition hover:bg-passion-red/15 hover:text-passion-red"

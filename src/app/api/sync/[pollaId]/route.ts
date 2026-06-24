@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isAdminAuthenticated } from "@/lib/auth";
+import { API_FOOTBALL_ENABLED } from "@/lib/constants";
 import { syncPolla } from "@/lib/sync";
 
 interface RouteCtx {
@@ -15,6 +16,12 @@ export async function POST(_: Request, ctx: RouteCtx) {
   const polla = await prisma.polla.findUnique({ where: { id: pollaId } });
   if (!polla) {
     return NextResponse.json({ error: "Polla no existe" }, { status: 404 });
+  }
+  if (!API_FOOTBALL_ENABLED) {
+    return NextResponse.json(
+      { error: "La sincronización con API-Football está desactivada. Usa el marcador manual." },
+      { status: 403 }
+    );
   }
   try {
     const result = await syncPolla(polla);
