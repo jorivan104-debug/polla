@@ -79,6 +79,54 @@ src/
     └── db.ts              # cliente Prisma
 ```
 
+## Deploy en Dokploy (Nixpacks)
+
+### Configuración obligatoria
+
+| Campo | Valor |
+|-------|-------|
+| Build Type | Nixpacks |
+| Build Command | `npm run build` |
+| Start Command | `npm run start` |
+| **Port (aplicación)** | **3000** |
+| **Container Port (dominio)** | **3000** ← debe coincidir con el puerto de Next.js |
+| Pre-Deploy | `npx prisma db push --accept-data-loss` |
+| Volumen | Mount path `/app/data` (para SQLite persistente) |
+
+### Variables de entorno
+
+```env
+NODE_ENV=production
+PORT=3000
+HOSTNAME=0.0.0.0
+DATABASE_URL=file:/app/data/dev.db
+API_FOOTBALL_KEY=...
+ADMIN_PASSWORD=...
+ADMIN_SESSION_SECRET=...
+CRON_SECRET=...
+NEXT_PUBLIC_APP_URL=https://polla.tudominio.com
+```
+
+### Health check (opcional)
+
+Ruta: `GET /api/health` → responde `{"ok":true}`
+
+### Error "Bad Gateway"
+
+Causa más común: **el Container Port del dominio no coincide con el puerto real de la app**.
+
+- Los logs muestran: `Local: http://localhost:3000` → la app escucha en **3000**.
+- Si en Domain pusiste Container Port **2400** (u otro), Traefik no llega al contenedor → **Bad Gateway**.
+- **Solución**: en Dokploy → Domain → editar `polla.app-sprint.com` → **Container Port = 3000** → guardar y redeploy.
+
+El `SIGTERM` en los logs suele ser Dokploy matando el contenedor tras fallar el health check por puerto incorrecto.
+
+### Cron en Dokploy (Schedules)
+
+```bash
+curl -fsS -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/sync
+```
+
 ## Deploy en Vercel
 
 1. Crea el proyecto en Vercel apuntando al repo.
